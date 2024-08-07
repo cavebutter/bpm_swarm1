@@ -6,6 +6,7 @@ import plexapi.playlist
 from plexapi.server import PlexServer
 import configparser
 from datetime import datetime
+import csv
 
 config = configparser.ConfigParser()
 config.read('/Users/Jayco/projects/bpm_swarm1/config.ini')
@@ -56,7 +57,7 @@ def get_all_tracks(server):
     list: A list of all tracks in the music library.
     """
     library = find_music_library(server)
-    tracks = library.searchTracks()
+    tracks = library.searchTracks(limit=50)
     return tracks
 
 def extract_track_data(track):
@@ -88,3 +89,39 @@ def extract_track_data(track):
     }
     return track_data
 
+
+def listify_track_data(tracks):
+    """
+    Lists the track data from the provided list of tracks.
+
+    Parameters:
+    tracks (list): A list of track objects to extract data from.
+
+    Returns:
+    list: A list of dictionaries containing the track data.
+    """
+    track_list = []
+    for track in tracks:
+        track_data = extract_track_data(track)
+        track_list.append(track_data)
+    return track_list
+
+
+
+def export_track_data(track_data):
+    """
+    Exports the track data to a CSV file.
+
+    Parameters:
+    track_data (list): A list of dictionaries containing track data.
+
+    Returns:
+    None
+    """
+    with open('track_data.csv', 'a') as csvfile:
+        fieldnames = ['title', 'artist', 'album', 'genre', 'added_date', 'filepath',
+                      'location', 'id']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for element in track_data:
+            writer.writerow(element)

@@ -1,3 +1,6 @@
 config.ini
 /music_library
 /venv
+track_data.csv
+track_data.db
+id_location.csv
