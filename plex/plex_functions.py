@@ -9,12 +9,12 @@ from datetime import datetime
 import csv
 
 config = configparser.ConfigParser()
-config.read('/Users/Jayco/projects/bpm_swarm1/config.ini')
+config.read('/Users/jay/Documents/python_projects/bpm_swarm1/config.ini')
 
-PLEX_USER = config['PLEX']['username']
-PLEX_PASSWORD = config['PLEX']['password']
-PLEX_SERVER = config['PLEX']['servername']
-MUSIC_LIBRARY = config['PLEX']['musiclibrary']
+PLEX_USER = config['WOODSTOCK']['username']
+PLEX_PASSWORD = config['WOODSTOCK']['password']
+PLEX_SERVER = config['WOODSTOCK']['servername']
+MUSIC_LIBRARY = config['WOODSTOCK']['musiclibrary']
 
 def plex_connect(PLEX_USER, PLEX_PASSWORD, PLEX_SERVER):
     """
@@ -42,7 +42,7 @@ def find_music_library(server):
     Returns:
     plexapi.library.Library: The music library object.
     """
-    music_library = server.library.section('Music - Schroeder')
+    music_library = server.library.section(MUSIC_LIBRARY)
     return music_library
 
 def get_all_tracks(server):

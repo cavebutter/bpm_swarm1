@@ -63,7 +63,7 @@ def process_bpm(database, track_list: csv):
     with open(track_list, 'r') as f:
         reader = csv.DictReader
         for row in reader(f):
-            bpm = bpm.get_bpm(row['filepath'])
-            c.execute("UPDATE track_data SET bpm = ? WHERE id = ?", (bpm, row['id']))
+            track_bpm = bpm.get_bpm(row['location'])
+            c.execute("UPDATE track_data SET bpm = ? WHERE id = ?", (track_bpm, row['id']))
             conn.commit()
 
