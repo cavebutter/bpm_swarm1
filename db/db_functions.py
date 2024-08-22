@@ -1,8 +1,22 @@
-import sqlite3
+import mysql.connector
 import csv
+import os
+import configparser
 
-database = 'track_data.db'
-def create_track_db(database):
+
+#  TODO Find a way to use the config to provide database connection info
+#  TODO Recreate the connect func
+
+config = configparser.ConfigParser()
+config.read('/Users/jay/Documents/python_projects/bpm_swarm1/config.ini')
+
+database = config['MYSQL']['db_database']
+db_path = config['MYSQL']['db_path']
+db_user = config['MYSQL']['db_user']
+db_password = config['MYSQL']['db_pwd']
+
+
+def create_track_db():
     """
     Creates a SQLite database for track data.
 
@@ -12,17 +26,43 @@ def create_track_db(database):
     Returns:
     None
     """
-    conn = sqlite3.connect(database)
+    conn = mysql.connector.connect(
+        host="athena.eagle-mimosa.ts.net",
+        user="jay",
+        password="d0ghouse",
+        database="bpm_swarm1"
+    )
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS track_data
-                 (title text, artist text, album text, genre text, added_date text,
-                  filepath text, location text, id integer NOT NULL PRIMARY KEY,
-                  bpm real)''')
+                 (id INTEGER AUTO_INCREMENT PRIMARY KEY
+                 , title VARCHAR (100)
+                 , artist VARCHAR (100)
+                 , album VARCHAR (100)
+                 , genre VARCHAR (50)
+                 , added_date VARCHAR (50)
+                 , filepath VARCHAR (200)
+                 , location VARCHAR (200)
+                 , schroeder_id INTEGER
+                 , woodstock_id INTEGER
+                 , bpm FLOAT )''')
     conn.commit()
     conn.close()
+    print("Created track_data table!")
 
 
-def insert_tracks(csv_file, database):
+def restart():
+    conn = mysql.connector.connect(
+        host="athena.eagle-mimosa.ts.net",
+        user="jay",
+        password="d0ghouse",
+        database="bpm_swarm1"
+    )
+    c = conn.cursor()
+    c.execute("DROP TABLE IF EXISTS track_data")
+    c.close()
+
+
+def insert_tracks(csv_file):
     """
     Inserts track data from a CSV file into the SQLite database.
 
@@ -32,20 +72,26 @@ def insert_tracks(csv_file, database):
     Returns:
     None
     """
-    conn = sqlite3.connect(database)
+    conn = mysql.connector.connect(
+        host="athena.eagle-mimosa.ts.net",
+        user="jay",
+        password="d0ghouse",
+        database="bpm_swarm1"
+    )
     c = conn.cursor()
     with open(csv_file, 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            c.execute("INSERT OR IGNORE INTO track_data (title, artist, album, genre, "
-                      "added_date, filepath, location, id)VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            c.execute("INSERT INTO track_data (title, artist, album, genre, "
+                      "added_date, filepath, location, woodstock_id)VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
                       (row['title'], row['artist'], row['album'], row['genre'],
-                       row['added_date'], row['filepath'], row['location'], row['id']))
+                       row['added_date'], row['filepath'], row['location'], row['woodstock_id']))
     conn.commit()
     conn.close()
+    print("Inserted track records in database!")
 
 
-def get_id_location(database):
+def get_id_location():
     """
     Gets the track ID and location from the SQLite database.
 
@@ -55,16 +101,19 @@ def get_id_location(database):
     Returns:
     list: A list of tuples containing the track ID and location.
     """
-    conn = sqlite3.connect(database)
+    conn = mysql.connector.connect(
+        host="athena.eagle-mimosa.ts.net",
+        user="jay",
+        password="d0ghouse",
+        database="bpm_swarm1"
+    )
     c = conn.cursor()
-    c.execute("SELECT id, location FROM track_data")
+    c.execute("SELECT id, woodstock_id, location FROM track_data")
     results = c.fetchall()
     conn.close()
+    print("Queried DB for id and location!")
     return results
 
-
-import csv
-import os
 
 def export_results(results: list, file_path: str = 'id_location.csv'):
     """
@@ -76,7 +125,7 @@ def export_results(results: list, file_path: str = 'id_location.csv'):
     file_exists = os.path.isfile(file_path)
 
     with open(file_path, 'a', newline='') as csvfile:
-        fieldnames = ['id', 'location']
+        fieldnames = ['id', 'woodstock_id', 'location']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
         # Write the header only if the file does not exist
@@ -89,4 +138,4 @@ def export_results(results: list, file_path: str = 'id_location.csv'):
             row_dict = dict(zip(fieldnames, element))
             # Write the dictionary to the CSV
             writer.writerow(row_dict)
-
+    print("Exported ID and Location to CSV!")

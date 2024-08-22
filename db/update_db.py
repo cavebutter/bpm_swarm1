@@ -1,8 +1,8 @@
 from analysis import bpm
-import sqlite3
+import mysql.connector
 import csv
 
-def update_bpm(database, track_info: list):
+def update_bpm(track_info: list):
     """
     Iterate through the track_info list, execute the bpm function, and update
     the database with the result.
@@ -10,15 +10,21 @@ def update_bpm(database, track_info: list):
     :param track_info:
     :return:
     """
-    conn = sqlite3.connect(database)
+    conn = mysql.connector.connect(
+        host="athena.eagle-mimosa.ts.net",
+        user="jay",
+        password="d0ghouse",
+        database="bpm_swarm1"
+    )
+    c = conn.cursor()
     for track in track_info:
         bperminute = bpm.get_bpm(track[1])
-        conn.execute("UPDATE track_data SET bpm = ? WHERE id = ?", (bperminute, track[0]))
-        conn.commit()
+        c.execute("UPDATE track_data SET bpm = %s WHERE woodstock_id = %s", (bperminute, track[0]))
+        c.commit()
     conn.close()
 
 
-def update_filepath(database, original_path: str, new_path: str):
+def update_filepath(original_path: str, new_path: str):
     """
     Update the filepath in the database.
     :param database: Path to the SQLite database file
@@ -32,7 +38,12 @@ def update_filepath(database, original_path: str, new_path: str):
     """
 
     # Connect to the database
-    conn = sqlite3.connect(database)
+    conn = mysql.connector.connect(
+        host="athena.eagle-mimosa.ts.net",
+        user="jay",
+        password="d0ghouse",
+        database="bpm_swarm1"
+    )
     c = conn.cursor()
 
     try:
@@ -43,27 +54,33 @@ def update_filepath(database, original_path: str, new_path: str):
         conn.commit()
         print("File paths updated successfully.")
 
-    except sqlite3.Error as e:
-        print(f"An error occurred: {e}")
+    except:
+        print("An error occurred")
 
     finally:
         # Close the connection
         conn.close()
 
 
-def process_bpm(database, track_list: csv):
+def process_bpm(track_list: csv):
     """
     Read csv file and iterate through rows to update the bpm in the database.
     :param database:
     :param track_list:
     :return:
     """
-    conn = sqlite3.connect(database)
+    conn = mysql.connector.connect(
+        host="athena.eagle-mimosa.ts.net",
+        user="jay",
+        password="d0ghouse",
+        database="bpm_swarm1"
+    )
     c = conn.cursor()
     with open(track_list, 'r') as f:
         reader = csv.DictReader
         for row in reader(f):
             track_bpm = bpm.get_bpm(row['location'])
-            c.execute("UPDATE track_data SET bpm = ? WHERE id = ?", (track_bpm, row['id']))
+            c.execute("UPDATE track_data SET bpm = %s WHERE id = %s", (track_bpm, row['id']))
             conn.commit()
 
+    print("Updated BPM!")

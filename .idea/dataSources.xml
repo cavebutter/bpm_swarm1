@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="track_data.db" uuid="a76c5d2e-ff87-45af-b3db-4c435c632d5b">
-      <driver-ref>sqlite.xerial</driver-ref>
+    <data-source source="LOCAL" name="bpm_swarm1@athena.eagle-mimosa.ts.net" uuid="b1f25e7a-0d16-4b2b-ad4d-c8ade50cd275">
+      <driver-ref>mysql.8</driver-ref>
       <synchronize>true</synchronize>
-      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/track_data.db</jdbc-url>
+      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mysql://192.168.5.246:3306/bpm_swarm1</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>

@@ -30,6 +30,7 @@ def plex_connect(PLEX_USER, PLEX_PASSWORD, PLEX_SERVER):
     """
     account = MyPlexAccount(PLEX_USER, PLEX_PASSWORD)
     server = account.resource(PLEX_SERVER).connect()
+    print(f"Connected to Plex Server:  {PLEX_SERVER}")
     return server
 
 def find_music_library(server):
@@ -58,9 +59,10 @@ def get_all_tracks(server):
     """
     library = find_music_library(server)
     tracks = library.searchTracks(limit=50)
+    print("Got all tracks!")
     return tracks
 
-def extract_track_data(track):
+def extract_track_data_woodstock(track):
     """
     Extracts the track data from the provided track.
 
@@ -85,7 +87,7 @@ def extract_track_data(track):
         'added_date': added_date,
         'filepath': filepath,
         'location': track.locations[0],
-        'id': track.ratingKey
+        'woodstock_id': track.ratingKey
     }
     return track_data
 
@@ -102,12 +104,13 @@ def listify_track_data(tracks):
     """
     track_list = []
     for track in tracks:
-        track_data = extract_track_data(track)
+        track_data = extract_track_data_woodstock(track)
         track_list.append(track_data)
+    print("Made a list of all track data!")
     return track_list
 
 
-
+#  TODO export_track_data() and others specify Woodstock.  Make these funcs usable for both servers
 def export_track_data(track_data):
     """
     Exports the track data to a CSV file.
@@ -120,8 +123,9 @@ def export_track_data(track_data):
     """
     with open('track_data.csv', 'a') as csvfile:
         fieldnames = ['title', 'artist', 'album', 'genre', 'added_date', 'filepath',
-                      'location', 'id']
+                      'location', 'woodstock_id']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         for element in track_data:
             writer.writerow(element)
+    print("Exported all track data to csv!")
