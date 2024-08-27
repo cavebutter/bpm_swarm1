@@ -5,3 +5,5 @@ track_data.csv
 track_data.db
 id_location.csv
 reset.py
+run.log
+__pycache__

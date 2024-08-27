@@ -1,6 +1,9 @@
+import sys
+
 from analysis import bpm
 import mysql.connector
 import csv
+from loguru import logger
 
 def update_bpm(track_info: list):
     """
@@ -10,12 +13,16 @@ def update_bpm(track_info: list):
     :param track_info:
     :return:
     """
-    conn = mysql.connector.connect(
-        host="athena.eagle-mimosa.ts.net",
-        user="jay",
-        password="d0ghouse",
-        database="bpm_swarm1"
-    )
+    try:
+        conn = mysql.connector.connect(
+            host="athena.eagle-mimosa.ts.net",
+            user="jay",
+            password="d0ghouse",
+            database="bpm_swarm1"
+        )
+        logger.info("Connected to MySQL DB")
+    except Exception as e:
+        logger.error(f"Could not connect to MySQL database: {e}")
     c = conn.cursor()
     for track in track_info:
         bperminute = bpm.get_bpm(track[1])
@@ -34,16 +41,21 @@ def update_filepath(original_path: str, new_path: str):
     """
     update_query = """
     UPDATE track_data
-    SET location = REPLACE(location, ?, ?)
+    SET location = REPLACE(location, %s, %s)
     """
 
     # Connect to the database
-    conn = mysql.connector.connect(
-        host="athena.eagle-mimosa.ts.net",
-        user="jay",
-        password="d0ghouse",
-        database="bpm_swarm1"
-    )
+    try:
+        conn = mysql.connector.connect(
+            host="athena.eagle-mimosa.ts.net",
+            user="jay",
+            password="d0ghouse",
+            database="bpm_swarm1"
+        )
+        logger.info("Connected to MySQL server")
+    except Exception as e:
+        logger.error(f"Error connecting to MySQL: {e}")
+        sys.exit()
     c = conn.cursor()
 
     try:
@@ -52,10 +64,10 @@ def update_filepath(original_path: str, new_path: str):
 
         # Commit the changes
         conn.commit()
-        print("File paths updated successfully.")
+        logger.debug(f"File path updated successfully: {new_path}")
 
-    except:
-        print("An error occurred")
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
 
     finally:
         # Close the connection
@@ -63,24 +75,63 @@ def update_filepath(original_path: str, new_path: str):
 
 
 def process_bpm(track_list: csv):
-    """
-    Read csv file and iterate through rows to update the bpm in the database.
-    :param database:
-    :param track_list:
-    :return:
-    """
-    conn = mysql.connector.connect(
-        host="athena.eagle-mimosa.ts.net",
-        user="jay",
-        password="d0ghouse",
-        database="bpm_swarm1"
-    )
+    try:
+        conn = mysql.connector.connect(
+            host="athena.eagle-mimosa.ts.net",
+            user="jay",
+            password="d0ghouse",
+            database="bpm_swarm1"
+        )
+        logger.info("Connected to MySQL database")
+    except Exception as e:
+        logger.error(f"There was an error connecting to MySQL: {e}")
     c = conn.cursor()
     with open(track_list, 'r') as f:
-        reader = csv.DictReader
-        for row in reader(f):
+        reader = csv.DictReader(f)
+        lib_size = sum(1 for _ in reader)
+        logger.debug(f"Library size: {lib_size}")
+        i = 1
+
+    with open(track_list, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
             track_bpm = bpm.get_bpm(row['location'])
             c.execute("UPDATE track_data SET bpm = %s WHERE id = %s", (track_bpm, row['id']))
             conn.commit()
+            logger.info(f"Processed BPM for {row['woodstock_id']}; {i} of {lib_size}")
+            i += 1
 
-    print("Updated BPM!")
+
+def update_second_id(filename):
+    """
+    Consume csv file.  Where csv.location == db.location, update track_data.schroeder_id = csv.id
+    Args:
+        filename:
+    """
+    try:
+        conn = mysql.connector.connect(
+            host="athena.eagle-mimosa.ts.net",
+            user="jay",
+            password="d0ghouse",
+            database="bpm_swarm1"
+        )
+        logger.info("Connected to MySQL server")
+    except Exception as e:
+        logger.error(f"There was an error connecting to MySQL server: {e}")
+    c = conn.cursor()
+    with open(filename, 'r') as f:
+        reader = csv.DictReader
+        lib_size = sum(1 for _ in reader)
+        i = 1
+        try:
+            for row in reader(f):
+                c.execute("""
+                UPDATE track_data SET schroeder_id = %s WHERE location = %s""",
+                (row['schroeder_id'], row['location']))
+                conn.commit()
+                logger.info(f"Updated to add schroeder_id: {row['schroeder_id']}. Record {i} of {lib_size}")
+                i += 1
+        except Exception as e:
+            logger.error(f"Error updating schroeder_id: {row['schroeder_id']}. Record {i} of {lib_size}")
+            i += 1
+        conn.close()

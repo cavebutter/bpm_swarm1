@@ -1,8 +1,10 @@
+import sys
+
 import mysql.connector
 import csv
 import os
 import configparser
-
+from loguru import logger
 
 #  TODO Find a way to use the config to provide database connection info
 #  TODO Recreate the connect func
@@ -26,28 +28,48 @@ def create_track_db():
     Returns:
     None
     """
-    conn = mysql.connector.connect(
-        host="athena.eagle-mimosa.ts.net",
-        user="jay",
-        password="d0ghouse",
-        database="bpm_swarm1"
-    )
+    try:
+        conn = mysql.connector.connect(
+            host="athena.eagle-mimosa.ts.net",
+            user="jay",
+            password="d0ghouse",
+            database="bpm_swarm1"
+        )
+        logger.info("Connected to MySQL server")
+    except Exception as e:
+        logger.error(f"There was an error connecting to MySQL server: {e}")
+        sys.exit()
     c = conn.cursor()
+    try:
+        c.execute("DROP TABLE IF EXISTS track_data")
+        logger.debug("Dropped track_data table")
+    except Exception as e:
+        logger.error(f"There was an error dropping table `track_data`: {e}")
+        sys.exit()
     c.execute('''CREATE TABLE IF NOT EXISTS track_data
                  (id INTEGER AUTO_INCREMENT PRIMARY KEY
-                 , title VARCHAR (100)
-                 , artist VARCHAR (100)
-                 , album VARCHAR (100)
-                 , genre VARCHAR (50)
-                 , added_date VARCHAR (50)
-                 , filepath VARCHAR (200)
-                 , location VARCHAR (200)
+                 , title VARCHAR (1000)
+                 , artist VARCHAR (1000)
+                 , album VARCHAR (1000)
+                 , genre VARCHAR (500)
+                 , added_date VARCHAR (500)
+                 , filepath VARCHAR (1000)
+                 , location VARCHAR (1000)
                  , schroeder_id INTEGER
                  , woodstock_id INTEGER
                  , bpm FLOAT )''')
+    logger.debug("Created track_data table")
+    c.execute('''CREATE INDEX ws_ix
+    ON track_data (woodstock_id)''')
+    logger.debug("Created index `woodstock_ix")
+    c.execute('''CREATE INDEX schroeder_ix
+    ON track_data (schroeder_id)''')
+    logger.debug("Created index `schroeder_ix")
+#   c.execute('''CREATE INDEX loc_ix
+#    ON track_data (location)''')
+#    logger.debug("Created index loc_ix")
     conn.commit()
     conn.close()
-    print("Created track_data table!")
 
 
 def restart():
@@ -101,17 +123,22 @@ def get_id_location():
     Returns:
     list: A list of tuples containing the track ID and location.
     """
-    conn = mysql.connector.connect(
-        host="athena.eagle-mimosa.ts.net",
-        user="jay",
-        password="d0ghouse",
-        database="bpm_swarm1"
-    )
+    try:
+        conn = mysql.connector.connect(
+            host="athena.eagle-mimosa.ts.net",
+            user="jay",
+            password="d0ghouse",
+            database="bpm_swarm1"
+        )
+        logger.info("Connected to MySQL server")
+    except Exception as e:
+        logger.error(f"There was an error connecting to MySQL server: {e}")
+        sys.exit()
     c = conn.cursor()
     c.execute("SELECT id, woodstock_id, location FROM track_data")
     results = c.fetchall()
     conn.close()
-    print("Queried DB for id and location!")
+    logger.debug("Queried DB for id and location")
     return results
 
 
@@ -138,4 +165,4 @@ def export_results(results: list, file_path: str = 'id_location.csv'):
             row_dict = dict(zip(fieldnames, element))
             # Write the dictionary to the CSV
             writer.writerow(row_dict)
-    print("Exported ID and Location to CSV!")
+    logger.info("Exported ID and Location to CSV")
