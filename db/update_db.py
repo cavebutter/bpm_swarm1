@@ -103,6 +103,7 @@ def process_bpm(track_list: csv):
 
 
 def update_second_id(filename):
+    #  TODO This func needs to iterate through each row of the db, take the `filepath` and do the replace with `filepath` as string, /Volumes.../ as first sub, and `/volume1...` as second
     """
     Consume csv file.  Where csv.location == db.location, update track_data.schroeder_id = csv.id
     Args:
@@ -120,18 +121,54 @@ def update_second_id(filename):
         logger.error(f"There was an error connecting to MySQL server: {e}")
     c = conn.cursor()
     with open(filename, 'r') as f:
-        reader = csv.DictReader
+        reader = csv.DictReader(f)
         lib_size = sum(1 for _ in reader)
         i = 1
-        try:
-            for row in reader(f):
-                c.execute("""
-                UPDATE track_data SET schroeder_id = %s WHERE location = %s""",
-                (row['schroeder_id'], row['location']))
-                conn.commit()
-                logger.info(f"Updated to add schroeder_id: {row['schroeder_id']}. Record {i} of {lib_size}")
+        with open(filename, 'r') as f:
+            reader = csv.DictReader
+            try:
+                for row in reader(f):
+                    c.execute("""
+                    UPDATE track_data SET schroeder_id = %s WHERE location = %s""",
+                    (row['schroeder_id'], row['location']))
+                    conn.commit()
+                    logger.info(f"Updated to add schroeder_id: {row['schroeder_id']}. Record {i} of {lib_size}")
+                    i += 1
+            except Exception as e:
+                logger.error(f"Error updating schroeder_id: {row['schroeder_id']}. Record {i} of {lib_size}")
                 i += 1
-        except Exception as e:
-            logger.error(f"Error updating schroeder_id: {row['schroeder_id']}. Record {i} of {lib_size}")
+            conn.close()
+
+
+def update_location_complete(old_str: str, new_str: str):
+    # Connect to DB
+    try:
+        conn = mysql.connector.connect(
+            host="athena.eagle-mimosa.ts.net",
+            user="jay",
+            password="d0ghouse",
+            database="bpm_swarm1"
+        )
+        logger.info("Connected to MySQL server")
+    except Exception as e:
+        logger.error(f"There was an error connecting to MySQL server: {e}")
+    c = conn.cursor()
+    c.execute("""SELECT id
+              , filepath
+              FROM track_data
+              """)
+    results = c.fetchall()
+    i = 1
+    record_set = len(results)
+    for result in results:
+        try:
+            c.execute("""
+            UPDATE track_data SET track_data.location = REPLACE(filepath, %s, %s) WHERE track_data.id = %s
+            """, (old_str, new_str, result[0]))
+            conn.commit()
+            logger.info(f"Updated {result[0]} to new location; {i} of {record_set}")
             i += 1
-        conn.close()
+        except Exception as e:
+            logger.error(f"Error processing {result[0]}: {e}")
+            i += 1
+    conn.close()

@@ -37,16 +37,13 @@ if __name__ == "__main__":
 #    db.update_db.update_filepath('track_data.db', 'volume1', 'Volumes') # Change the filepath in the database
 #    results = db.db_functions.get_id_location()
 #    db.db_functions.export_results(results)
-    db.update_db.process_bpm('id_location.csv')
+#    db.update_db.process_bpm('id_location.csv')
     #  Get tracks from Schroeder and update db with Schroeder_ids for each track
-    # server = p.plex_connect(PLEX_USER, PLEX_PASSWORD, SCHROEDER)  # Connect to Schroeder
-    # schroeder_library = p.get_schroeder_library(server)
-    # print("Got Library object")
-    # tracks = schroeder_library.searchTracks(limit=100)  # Get all tracks from Schroeder instead of using get_all_tracks func
-    # print("Got tracks")
-    # track_list = p.listify_track_data(tracks, 'schroeder')  # Listify the track data
-    # print("Made list of tracks")
-    # p.export_track_data(track_list, 'second_track_data.csv', 'schroeder')
-    # print("Exported csv")
-    # db.update_db.update_second_id('second_track_data.csv')
-    # print("Added second id")
+#    server = p.plex_connect(PLEX_USER, PLEX_PASSWORD, SCHROEDER)  # Connect to Schroeder
+#    schroeder_library = p.get_schroeder_library(server)
+#    tracks = schroeder_library.searchTracks()  # Get all tracks from Schroeder instead of using get_all_tracks func
+#    track_list = p.listify_track_data(tracks, 'schroeder')  # Listify the track data
+#    p.export_track_data(track_list, 'second_track_data.csv', 'schroeder')
+#    db.update_db.update_filepath("Volumes/Franklin/Media", "volume1/media/Music/Music")
+#    db.update_db.update_location_complete("/Volumes/Franklin/Media/Music", "volume1/media/Music/Music")
+    db.update_db.update_second_id('second_track_data.csv')
