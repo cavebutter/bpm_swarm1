@@ -11,7 +11,7 @@ from loguru import logger
 import sys
 
 config = configparser.ConfigParser()
-config.read('/Users/jay/Documents/python_projects/bpm_swarm1/config.ini')
+config.read('config.ini')
 
 PLEX_USER = config['WOODSTOCK']['username']
 PLEX_PASSWORD = config['WOODSTOCK']['password']

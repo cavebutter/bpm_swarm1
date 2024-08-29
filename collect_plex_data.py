@@ -18,12 +18,12 @@ def configure_logging():
 configure_logging()
 
 # Plex
-PLEX_USER = config['SCHROEDER']['username']
-PLEX_PASSWORD = config['SCHROEDER']['password']
-WOODSTOCK = config['WOODSTOCK']['servername']
-SCHROEDER = config['SCHROEDER']['servername']
-WOODSTOCK_LIBRARY = config['WOODSTOCK']['musiclibrary']
-#SCHROEDER_LIBRARY = config['SCHROEDER']['musiclibrary']
+# PLEX_USER = config['SCHROEDER']['username']
+# PLEX_PASSWORD = config['SCHROEDER']['password']
+# WOODSTOCK = config['WOODSTOCK']['servername']
+# SCHROEDER = config['SCHROEDER']['servername']
+# WOODSTOCK_LIBRARY = config['WOODSTOCK']['musiclibrary']
+# #SCHROEDER_LIBRARY = config['SCHROEDER']['musiclibrary']
 
 if __name__ == "__main__":
     #  Get tracks from Woodstock and populate db with Woodstock data and BPM

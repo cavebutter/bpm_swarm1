@@ -10,7 +10,7 @@ from loguru import logger
 #  TODO Recreate the connect func
 
 config = configparser.ConfigParser()
-config.read('/Users/jay/Documents/python_projects/bpm_swarm1/config.ini')
+config.read('config.ini')
 
 database = config['MYSQL']['db_database']
 db_path = config['MYSQL']['db_path']
@@ -166,3 +166,130 @@ def export_results(results: list, file_path: str = 'id_location.csv'):
             # Write the dictionary to the CSV
             writer.writerow(row_dict)
     logger.info("Exported ID and Location to CSV")
+
+
+def create_artists_table():
+    """
+    Creates an artists table in the MySQL database. Should only be called once
+    at the beginning of the program.
+    Returns:
+
+    """
+    try:
+        conn = mysql.connector.connect(
+        host="athena.eagle-mimosa.ts.net",
+        user="jay",
+        password="d0ghouse",
+        database="bpm_swarm1"
+    )
+        logger.debug("Connected to MySQL server")
+    except Exception as e:
+        logger.error(f"There was an error connecting to MySQL server: {e}")
+        sys.exit()
+    c = conn.cursor()
+    c.execute('''DROP TABLE IF EXISTS artists''')
+    c.execute('''CREATE TABLE IF NOT EXISTS artists
+                 (id INTEGER PRIMARY KEY AUTO_INCREMENT
+                 , artist VARCHAR(255) NOT NULL
+                 , last_fm_id VARCHAR(255)
+                 , discogs_id VARCHAR(255)
+                 , musicbrainz_id VARCHAR(255))''')
+    conn.commit()
+    conn.close()
+    logger.debug("Created artists table")
+
+
+def populate_artists_table():
+    """
+    Populates the artists table with artist names from the track_data table.
+    Should only be called once at the beginning of the program.
+    Returns:
+
+    """
+    try:
+        conn = mysql.connector.connect(
+        host="athena.eagle-mimosa.ts.net",
+        user="jay",
+        password="d0ghouse",
+        database="bpm_swarm1"
+    )
+        logger.debug("Connected to MySQL server")
+    except Exception as e:
+        logger.error(f"There was an error connecting to MySQL server: {e}")
+        sys.exit()
+    c = conn.cursor()
+    c.execute("""
+    SELECT DISTINCT artist
+    FROM track_data
+    """)
+    artists = c.fetchall()
+    artists_len = len(artists)
+    for artist in artists:
+        c.execute("INSERT INTO artists (artist) VALUES (%s)", (artist[0],))
+        logger.info(f"Inserted {artist[0]} into artists table; {artists.index(artist) + 1} of {artists_len}")
+    conn.commit()
+    conn.close()
+    logger.debug("Populated artists table")
+
+
+def add_artist_id_column():
+    """
+    Replaces the artist column in the track_data table with the artist id from the artists table.
+    Should only be called once at the beginning of the program.
+    Returns:
+
+    """
+    try:
+        conn = mysql.connector.connect(
+        host="athena.eagle-mimosa.ts.net",
+        user="jay",
+        password="d0ghouse",
+        database="bpm_swarm1"
+    )
+        logger.debug("Connected to MySQL server")
+    except Exception as e:
+        logger.error(f"There was an error connecting to MySQL server: {e}")
+        sys.exit()
+    c = conn.cursor()
+    c.execute("""
+    ALTER TABLE track_data
+    ADD COLUMN artist_id INTEGER,
+    ADD FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
+    """)
+    conn.commit()
+    conn.close()
+    logger.debug("Replaced artist column in track_data table")
+
+
+def populate_artist_id_column():
+    """
+    Populates the artist_id column in the track_data table with the artist id from the artists table.
+    Should only be called once at the beginning of the program.
+    Returns:
+
+    """
+    try:
+        conn = mysql.connector.connect(
+        host="athena.eagle-mimosa.ts.net",
+        user="jay",
+        password="d0ghouse",
+        database="bpm_swarm1"
+    )
+        logger.debug("Connected to MySQL server")
+    except Exception as e:
+        logger.error(f"There was an error connecting to MySQL server: {e}")
+        sys.exit()
+    c = conn.cursor()
+    c.execute("""
+    SELECT id, artist
+    FROM artists
+    """)
+    artists = c.fetchall()
+    logger.debug("Queried DB for id and artist")
+    for artist in artists:
+        c.execute("UPDATE track_data SET artist_id = %s WHERE artist = %s", (artist[0], artist[1]))
+        logger.info(f"Updated {artist[1]} in track_data table; {artists.index(artist) + 1} of {len(artists)}")
+    conn.commit()
+    logger.debug("Updated artist_id column in track_data table")
+    conn.close()
+    logger.debug("Closed Connection")
