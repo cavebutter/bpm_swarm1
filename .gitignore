@@ -8,3 +8,6 @@ reset.py
 run.log
 __pycache__
 scratch.py
+mock_music_data.csv
+mock_music_data.numbers
+second_track_data.csv

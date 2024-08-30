@@ -9,6 +9,8 @@ from datetime import datetime
 import csv
 from loguru import logger
 import sys
+import db.db_functions as db
+
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -176,3 +178,41 @@ def export_track_data(track_data, filename, server_name: str):
         for element in track_data:
             writer.writerow(element)
     logger.info("Exported all track data to csv!")
+
+
+#  This one is acting funny, as it trims every record.  Don't use for now.
+#  Use fetch_recent() instead.
+def trim_csv(last_update: str, file_path: str, server_name: str):
+    """
+    Trim all records from CSV to include only those with date greater than last date in db.
+    Args:
+        file_path:
+
+    Returns:
+
+    """
+    last_update_date = datetime.strptime(last_update, '%Y-%m-%d')
+
+    server = server_name + '_id'
+    with open(file_path, 'r') as f:
+        reader = csv.DictReader(f)
+        records = [row for row in reader if datetime.strptime(row['added_date'],'%Y-%m-%d') > last_update_date]
+    with open(file_path, 'w') as f:
+        fieldnames = ['title', 'artist', 'album', 'genre', 'added_date', 'filepath',
+                      'location', server]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(records)
+    logger.info(
+        "Trimmed CSV to only include records with date greater than last update date")
+
+
+def fetch_recent(server, library):
+    #cutoff = datetime.strptime(db.get_last_update_date(), '%Y-%m-%d')
+    cutoff = datetime.strptime('2024-07-01', '%Y-%m-%d')  # TODO remove.  Just for testing
+    logger.debug(f"Last update date: {cutoff}")
+    lib = get_music_library(server, library)
+    logger.debug(f"Library: {lib}")
+    results = lib.searchTracks(filters = {'addedAt>>=': cutoff})
+    logger.debug(f"Results: {len(results)}")
+    return results, cutoff

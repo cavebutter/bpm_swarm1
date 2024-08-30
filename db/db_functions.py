@@ -16,8 +16,31 @@ database = config['MYSQL']['db_database']
 db_path = config['MYSQL']['db_path']
 db_user = config['MYSQL']['db_user']
 db_password = config['MYSQL']['db_pwd']
+db_port = config['MYSQL']['db_port']
 
+#  TODO Find a way to use the config to provide database connection info
+def connect():
+    """
+    Connects to the MySQL database.
 
+    Parameters:
+    None
+
+    Returns:
+    conn: The connection object
+    """
+    try:
+        conn = mysql.connector.connect(
+            host="athena.eagle-mimosa.ts.net",
+            user="jay",
+            password="d0ghouse",
+            database="bpm_swarm1"
+        )
+        logger.info("Connected to MySQL server")
+    except Exception as e:
+        logger.error(f"There was an error connecting to MySQL server: {e}")
+        sys.exit()
+    return conn
 def create_track_db():
     """
     Creates a SQLite database for track data.
@@ -113,9 +136,9 @@ def insert_tracks(csv_file):
     print("Inserted track records in database!")
 
 
-def get_id_location():
+def get_id_location(cutoff=None):
     """
-    Gets the track ID and location from the SQLite database.
+    Gets the track ID and location from the MySQL database.
 
     Parameters:
     DATABASE (str): The path to the SQLite database.
@@ -135,7 +158,22 @@ def get_id_location():
         logger.error(f"There was an error connecting to MySQL server: {e}")
         sys.exit()
     c = conn.cursor()
-    c.execute("SELECT id, woodstock_id, location FROM track_data")
+    query_wo_cutoff = "SELECT id, woodstock_id, location FROM track_data"
+    query_w_cutoff = f"SELECT id, woodstock_id, location FROM track_data WHERE added_date > %s"
+    if cutoff is None:
+        c.execute(query_wo_cutoff)
+        logger.info("Queried db without cutoff")
+    else:
+        try:
+            c.execute(query_w_cutoff, (cutoff,))
+            logger.info("Queried db with cutoff")
+        except Exception as e:
+            logger.error(f"There was an error querying db with cutoff: {e}")
+            sys.exit()
+        finally:
+            conn.close()
+
+
     results = c.fetchall()
     conn.close()
     logger.debug("Queried DB for id and location")
@@ -293,3 +331,13 @@ def populate_artist_id_column():
     logger.debug("Updated artist_id column in track_data table")
     conn.close()
     logger.debug("Closed Connection")
+
+
+def get_last_update_date():
+    conn = connect()
+    c = conn.cursor()
+    c.execute("SELECT MAX(date) FROM history")
+    result = c.fetchall()
+    result = result[0][0]
+    conn.close()
+    return result
