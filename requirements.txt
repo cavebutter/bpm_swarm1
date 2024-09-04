@@ -4,9 +4,11 @@ cffi==1.17.0
 charset-normalizer==3.3.2
 confuse==1.5.0
 decorator==5.1.1
+exceptiongroup==1.2.2
 idna==3.7
+iniconfig==2.0.0
 joblib==1.4.2
-lazy-loader==0.4
+lazy_loader==0.4
 librosa==0.10.2.post1
 llvmlite==0.43.0
 loguru==0.7.2
@@ -19,8 +21,10 @@ numpy==2.0.1
 packaging==24.1
 platformdirs==4.2.2
 PlexAPI==4.15.15
+pluggy==1.5.0
 pooch==1.8.2
 pycparser==2.22
+pytest==8.3.2
 PyYAML==6.0.2
 requests==2.32.3
 scikit-learn==1.5.1
@@ -29,5 +33,6 @@ six==1.16.0
 soundfile==0.12.1
 soxr==0.4.0
 threadpoolctl==3.5.0
-typing-extensions==4.12.2
+tomli==2.0.1
+typing_extensions==4.12.2
 urllib3==2.2.2

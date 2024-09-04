@@ -12,21 +12,25 @@ class Database:
         self.connection = None
 
     def connect(self):
-        try:
-            self.connection = mysql.connector.connect(
-                host=self.host,
-                user=self.user,
-                password=self.password,
-                database=self.database
-            )
-            logger.info("Connected to MySQL server")
-        except mysql.connector.Error as error:
-            logger.error(f"There was an error connecting to MySQL server: {error}")
-            sys.exit()
+        if self.connection is not None:
+            return
+        else:
+            try:
+                self.connection = mysql.connector.connect(
+                    host=self.host,
+                    user=self.user,
+                    password=self.password,
+                    database=self.database
+                )
+                logger.info("Connected to MySQL server")
+            except mysql.connector.Error as error:
+                logger.error(f"There was an error connecting to MySQL server: {error}")
+                sys.exit()
 
     def close(self):
         if self.connection:
             self.connection.close()
+            self.connection = None
             logger.info("Connection closed")
 
     def drop_table(self, table_name):

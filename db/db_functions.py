@@ -6,7 +6,7 @@ import os
 import configparser
 from loguru import logger
 
-#  TODO Find a way to use the config to provide database connection info
+#  TODO Find a way to use the config to provide db connection info
 #  TODO Recreate the connect func
 
 config = configparser.ConfigParser()

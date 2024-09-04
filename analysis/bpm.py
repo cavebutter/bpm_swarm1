@@ -24,7 +24,6 @@ def get_bpm(audio_file):
     try:
         y, sr = librosa.load(audio_file, duration=180)
         bpm = librosa.beat.beat_track(y=y, sr=sr)[0]
-        #bpm = round(bpm,0)
         bpm = int(bpm)
         return bpm
     except Exception as e:

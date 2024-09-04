@@ -105,6 +105,23 @@ def get_all_tracks(server, library):
         logger.error(f"There was an error getting all tracks: {e}")
         sys.exit()
 
+
+def get_all_tracks_test(server, library):
+    #  TODO This func works fine on Woodstock but on Schroeder returns AttributeError: MusicSection object has no \
+    #   attribute 'lower'.  The individual statements in this func work fine on Schroeder.
+    """
+Limited search for testing purposes only
+    """
+    try:
+        library = get_music_library(server, library)
+        tracks = library.searchTracks(limit=50)
+        library_size = len(tracks)
+        logger.info(f"Retrieved tracks. {library_size} tracks in total.")
+        return tracks, library_size
+    except Exception as e:
+        logger.error(f"There was an error getting all tracks: {e}")
+        sys.exit()
+
 def extract_track_data(track, server_name: str):
     """
     Extracts the track data from the provided track.

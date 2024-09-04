@@ -32,9 +32,9 @@ if __name__ == "__main__":
     lib_size = tracks[1]
     track_list = p.listify_track_data(tracks[0], 'woodstock')  # Listify the track data
     p.export_track_data(track_list, 'track_data.csv', 'woodstock')  # Export the track data
-    db.db_functions.create_track_db()  # Create the SQLite database and table
-    db.db_functions.insert_tracks('track_data.csv')  # Insert the track data into the database
-#    db.update_db.update_filepath('track_data.db', 'volume1', 'Volumes') # Change the filepath in the database
+    db.db_functions.create_track_db()  # Create the SQLite db and table
+    db.db_functions.insert_tracks('track_data.csv')  # Insert the track data into the db
+#    db.update_db.update_filepath('track_data.db', 'volume1', 'Volumes') # Change the filepath in the db
     results = db.db_functions.get_id_location()
     db.db_functions.export_results(results)
     db.update_db.process_bpm('id_location.csv')

@@ -8,8 +8,8 @@ from loguru import logger
 def update_bpm(track_info: list):
     """
     Iterate through the track_info list, execute the bpm function, and update
-    the database with the result.
-    :param database:
+    the db with the result.
+    :param db:
     :param track_info:
     :return:
     """
@@ -22,7 +22,7 @@ def update_bpm(track_info: list):
         )
         logger.info("Connected to MySQL DB")
     except Exception as e:
-        logger.error(f"Could not connect to MySQL database: {e}")
+        logger.error(f"Could not connect to MySQL db: {e}")
     c = conn.cursor()
     for track in track_info:
         bperminute = bpm.get_bpm(track[1])
@@ -33,8 +33,8 @@ def update_bpm(track_info: list):
 
 def update_filepath(original_path: str, new_path: str):
     """
-    Update the filepath in the database.
-    :param database: Path to the SQLite database file
+    Update the filepath in the db.
+    :param db: Path to the SQLite db file
     :param original_path: The original path substring to replace
     :param new_path: The new path substring to replace with
     :return: None
@@ -44,7 +44,7 @@ def update_filepath(original_path: str, new_path: str):
     SET location = REPLACE(location, %s, %s)
     """
 
-    # Connect to the database
+    # Connect to the db
     try:
         conn = mysql.connector.connect(
             host="athena.eagle-mimosa.ts.net",
@@ -82,7 +82,7 @@ def process_bpm(track_list: csv):
             password="d0ghouse",
             database="bpm_swarm1"
         )
-        logger.info("Connected to MySQL database")
+        logger.info("Connected to MySQL db")
     except Exception as e:
         logger.error(f"There was an error connecting to MySQL: {e}")
     c = conn.cursor()
