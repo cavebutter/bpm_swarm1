@@ -1,5 +1,5 @@
 import sys
-
+from db.database import Database
 import mysql.connector
 import csv
 import os
@@ -18,164 +18,40 @@ db_user = config['MYSQL']['db_user']
 db_password = config['MYSQL']['db_pwd']
 db_port = config['MYSQL']['db_port']
 
-#  TODO Find a way to use the config to provide database connection info
-def connect():
+
+
+def insert_tracks(database: Database, csv_file):
+    database.connect()
+    query = """
+    INSERT INTO track_data (title, artist, album, genre, added_date, filepath, location, woodstock_id)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """
-    Connects to the MySQL database.
-
-    Parameters:
-    None
-
-    Returns:
-    conn: The connection object
-    """
-    try:
-        conn = mysql.connector.connect(
-            host="athena.eagle-mimosa.ts.net",
-            user="jay",
-            password="d0ghouse",
-            database="bpm_swarm1"
-        )
-        logger.info("Connected to MySQL server")
-    except Exception as e:
-        logger.error(f"There was an error connecting to MySQL server: {e}")
-        sys.exit()
-    return conn
-def create_track_db():
-    """
-    Creates a SQLite database for track data.
-
-    Parameters:
-    None
-
-    Returns:
-    None
-    """
-    try:
-        conn = mysql.connector.connect(
-            host="athena.eagle-mimosa.ts.net",
-            user="jay",
-            password="d0ghouse",
-            database="bpm_swarm1"
-        )
-        logger.info("Connected to MySQL server")
-    except Exception as e:
-        logger.error(f"There was an error connecting to MySQL server: {e}")
-        sys.exit()
-    c = conn.cursor()
-    try:
-        c.execute("DROP TABLE IF EXISTS track_data")
-        logger.debug("Dropped track_data table")
-    except Exception as e:
-        logger.error(f"There was an error dropping table `track_data`: {e}")
-        sys.exit()
-    c.execute('''CREATE TABLE IF NOT EXISTS track_data
-                 (id INTEGER AUTO_INCREMENT PRIMARY KEY
-                 , title VARCHAR (1000)
-                 , artist VARCHAR (1000)
-                 , album VARCHAR (1000)
-                 , genre VARCHAR (500)
-                 , added_date VARCHAR (500)
-                 , filepath VARCHAR (1000)
-                 , location VARCHAR (1000)
-                 , schroeder_id INTEGER
-                 , woodstock_id INTEGER
-                 , bpm FLOAT )''')
-    logger.debug("Created track_data table")
-    c.execute('''CREATE INDEX ws_ix
-    ON track_data (woodstock_id)''')
-    logger.debug("Created index `woodstock_ix")
-    c.execute('''CREATE INDEX schroeder_ix
-    ON track_data (schroeder_id)''')
-    logger.debug("Created index `schroeder_ix")
-#   c.execute('''CREATE INDEX loc_ix
-#    ON track_data (location)''')
-#    logger.debug("Created index loc_ix")
-    conn.commit()
-    conn.close()
-
-
-def restart():
-    conn = mysql.connector.connect(
-        host="athena.eagle-mimosa.ts.net",
-        user="jay",
-        password="d0ghouse",
-        database="bpm_swarm1"
-    )
-    c = conn.cursor()
-    c.execute("DROP TABLE IF EXISTS track_data")
-    c.close()
-
-
-def insert_tracks(csv_file):
-    """
-    Inserts track data from a CSV file into the SQLite database.
-
-    Parameters:
-    csv_file (str): The path to the CSV file.
-
-    Returns:
-    None
-    """
-    conn = mysql.connector.connect(
-        host="athena.eagle-mimosa.ts.net",
-        user="jay",
-        password="d0ghouse",
-        database="bpm_swarm1"
-    )
-    c = conn.cursor()
     with open(csv_file, 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            c.execute("INSERT INTO track_data (title, artist, album, genre, "
-                      "added_date, filepath, location, woodstock_id)VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-                      (row['title'], row['artist'], row['album'], row['genre'],
-                       row['added_date'], row['filepath'], row['location'], row['woodstock_id']))
-    conn.commit()
-    conn.close()
-    print("Inserted track records in database!")
+            values = (row['title'], row['artist'], row['album'], row['genre'],
+                      row['added_date'], row['filepath'], row['location'],
+                      row['woodstock_id'])
+            database.execute_query(query, values)
+            logger.info(f"Inserted track record for {row['woodstock_id']}")
 
 
-def get_id_location(cutoff=None):
-    """
-    Gets the track ID and location from the MySQL database.
+def get_id_location(database: Database, cutoff=None):
 
-    Parameters:
-    DATABASE (str): The path to the SQLite database.
-
-    Returns:
-    list: A list of tuples containing the track ID and location.
-    """
-    try:
-        conn = mysql.connector.connect(
-            host="athena.eagle-mimosa.ts.net",
-            user="jay",
-            password="d0ghouse",
-            database="bpm_swarm1"
-        )
-        logger.info("Connected to MySQL server")
-    except Exception as e:
-        logger.error(f"There was an error connecting to MySQL server: {e}")
-        sys.exit()
-    c = conn.cursor()
+    database.connect()
     query_wo_cutoff = "SELECT id, woodstock_id, location FROM track_data"
     query_w_cutoff = f"SELECT id, woodstock_id, location FROM track_data WHERE added_date > %s"
     if cutoff is None:
-        c.execute(query_wo_cutoff)
+        results = database.execute_select_query(query_wo_cutoff)
         logger.info("Queried db without cutoff")
     else:
         try:
-            c.execute(query_w_cutoff, (cutoff,))
+            results = database.execute_query(query_w_cutoff, (cutoff,))
             logger.info("Queried db with cutoff")
         except Exception as e:
             logger.error(f"There was an error querying db with cutoff: {e}")
-            sys.exit()
         finally:
-            conn.close()
-
-
-    results = c.fetchall()
-    conn.close()
+            database.close()
     logger.debug("Queried DB for id and location")
     return results
 
@@ -206,138 +82,70 @@ def export_results(results: list, file_path: str = 'id_location.csv'):
     logger.info("Exported ID and Location to CSV")
 
 
-def create_artists_table():
-    """
-    Creates an artists table in the MySQL database. Should only be called once
-    at the beginning of the program.
-    Returns:
-
-    """
-    try:
-        conn = mysql.connector.connect(
-        host="athena.eagle-mimosa.ts.net",
-        user="jay",
-        password="d0ghouse",
-        database="bpm_swarm1"
-    )
-        logger.debug("Connected to MySQL server")
-    except Exception as e:
-        logger.error(f"There was an error connecting to MySQL server: {e}")
-        sys.exit()
-    c = conn.cursor()
-    c.execute('''DROP TABLE IF EXISTS artists''')
-    c.execute('''CREATE TABLE IF NOT EXISTS artists
-                 (id INTEGER PRIMARY KEY AUTO_INCREMENT
-                 , artist VARCHAR(255) NOT NULL
-                 , last_fm_id VARCHAR(255)
-                 , discogs_id VARCHAR(255)
-                 , musicbrainz_id VARCHAR(255))''')
-    conn.commit()
-    conn.close()
-    logger.debug("Created artists table")
-
-
-def populate_artists_table():
+def populate_artists_table(database: Database):
     """
     Populates the artists table with artist names from the track_data table.
     Should only be called once at the beginning of the program.
     Returns:
 
     """
-    try:
-        conn = mysql.connector.connect(
-        host="athena.eagle-mimosa.ts.net",
-        user="jay",
-        password="d0ghouse",
-        database="bpm_swarm1"
-    )
-        logger.debug("Connected to MySQL server")
-    except Exception as e:
-        logger.error(f"There was an error connecting to MySQL server: {e}")
-        sys.exit()
-    c = conn.cursor()
-    c.execute("""
+    db = database.connect()
+    query = """
     SELECT DISTINCT artist
     FROM track_data
-    """)
-    artists = c.fetchall()
+    """
+    artists = db.execute_select_query(query)
     artists_len = len(artists)
     for artist in artists:
-        c.execute("INSERT INTO artists (artist) VALUES (%s)", (artist[0],))
+        db.execute_query("INSERT INTO artists (artist) VALUES (%s)", (artist[0],))
         logger.info(f"Inserted {artist[0]} into artists table; {artists.index(artist) + 1} of {artists_len}")
-    conn.commit()
-    conn.close()
     logger.debug("Populated artists table")
 
 
-def add_artist_id_column():
+def add_artist_id_column(database: Database):
     """
     Replaces the artist column in the track_data table with the artist id from the artists table.
     Should only be called once at the beginning of the program.
     Returns:
 
     """
-    try:
-        conn = mysql.connector.connect(
-        host="athena.eagle-mimosa.ts.net",
-        user="jay",
-        password="d0ghouse",
-        database="bpm_swarm1"
-    )
-        logger.debug("Connected to MySQL server")
-    except Exception as e:
-        logger.error(f"There was an error connecting to MySQL server: {e}")
-        sys.exit()
-    c = conn.cursor()
-    c.execute("""
+    db = database.connect()
+    query = """
     ALTER TABLE track_data
     ADD COLUMN artist_id INTEGER,
     ADD FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
-    """)
-    conn.commit()
-    conn.close()
+    """
+    result = db.execute_query(query)
     logger.debug("Replaced artist column in track_data table")
+    return result
 
 
-def populate_artist_id_column():
+def populate_artist_id_column(database: Database):
     """
     Populates the artist_id column in the track_data table with the artist id from the artists table.
     Should only be called once at the beginning of the program.
     Returns:
 
     """
-    try:
-        conn = mysql.connector.connect(
-        host="athena.eagle-mimosa.ts.net",
-        user="jay",
-        password="d0ghouse",
-        database="bpm_swarm1"
-    )
-        logger.debug("Connected to MySQL server")
-    except Exception as e:
-        logger.error(f"There was an error connecting to MySQL server: {e}")
-        sys.exit()
-    c = conn.cursor()
-    c.execute("""
+    db = database.connect()
+    query = """
     SELECT id, artist
     FROM artists
-    """)
-    artists = c.fetchall()
+    """
+    artists = db.execute_select_query(query) # fetchall()
     logger.debug("Queried DB for id and artist")
+    update_query = "UPDATE track_data SET artist_id = %s WHERE artist = %s"
+
     for artist in artists:
-        c.execute("UPDATE track_data SET artist_id = %s WHERE artist = %s", (artist[0], artist[1]))
+        params = (artist[0], artist[1])
+        db.execute_query(update_query, params)
         logger.info(f"Updated {artist[1]} in track_data table; {artists.index(artist) + 1} of {len(artists)}")
-    conn.commit()
     logger.debug("Updated artist_id column in track_data table")
-    conn.close()
-    logger.debug("Closed Connection")
 
 
-def get_last_update_date():
-    conn = connect()
-    c = conn.cursor()
-    c.execute("SELECT MAX(date) FROM history")
-    result = c.fetchall()
+def get_last_update_date(database: Database):
+    db = database.connect()
+    query = "SELECT MAX(date) FROM history"
+    result = db.execute_select_query(query)
     result = result[0][0]
-    conn.close()
     return result
