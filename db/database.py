@@ -48,10 +48,15 @@ class Database:
         logger.info(f"Table created")
 
     def execute_query(self, query, params=None):
+        if not self.connection:
+            self.connect()
         try:
             cursor = self.connection.cursor()
             logger.debug("Executing query on MySQL server")
-            cursor.execute(query, params)
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
             self.connection.commit()
             logger.info("Query executed successfully")
             return True
@@ -63,17 +68,20 @@ class Database:
             cursor.close()
 
 
-    def execute_select_query(self, query):
+    def execute_select_query(self, query, params=None):
         try:
             cursor = self.connection.cursor()
             logger.debug("Connected to MySQL server")
-            cursor.execute(query)
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
             result = cursor.fetchall()
         except mysql.connector.Error as error:
             logger.error(f"There was an error executing the query: {error}")
             self.connection.rollback()
         finally:
-            cursor.close()
+            #cursor.close()
             return result
 
     def create_artists_table(self, table_name="artists"):
@@ -124,7 +132,31 @@ class Database:
         tags_ddl = '''
         CREATE TABLE IF NOT EXISTS tags(
         id INTEGER PRIMARY KEY AUTO_INCREMENT
-        , tag VARCHAR (1000) NOT NULL
+        , tag INTEGER (6)
         , artist_id INTEGER
-        , FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE)'''
+        , FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
+        , FOREIGN KEY (tag) REFERENCES genres(id) ON DELETE CASCADE)'''
         self.create_table(tags_ddl)
+
+
+    def create_similar_artists_table(self):
+        self.drop_table("similar_artists")
+        similar_artists_ddl = '''
+        CREATE TABLE IF NOT EXISTS similar_artists(
+        id INTEGER PRIMARY KEY AUTO_INCREMENT
+        , artist_id INTEGER
+        , similar_artist_id INTEGER
+        , FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
+        , FOREIGN KEY (similar_artist_id) REFERENCES artists(id) ON DELETE CASCADE)'''
+        self.create_table(similar_artists_ddl)
+
+
+    def create_genres_table(self):
+        self.drop_table('genres')
+        genres_ddl = '''
+        CREATE TABLE IF NOT EXISTS genres(
+        id INTEGER PRIMARY KEY AUTO_INCREMENT
+        , genre VARCHAR(1000) NOT NULL
+        )
+        '''
+        self.create_table(genres_ddl)
