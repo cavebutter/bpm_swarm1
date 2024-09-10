@@ -1,7 +1,7 @@
 from configparser import ConfigParser
 from db.database import Database
 import db.update_db as db
-import time
+from analysis import exponential_backoff as exponential_backoff
 from analysis import lastfm as lastfm
 from loguru import logger
 import sys
@@ -30,36 +30,35 @@ if __name__ == '__main__':
     cxn.connect()
     configure_logging() # STEP 1
     logger.debug("Step 1: Configure logging")
-    lastfm_data = lastfm.get_artist_info('Jethro Tull') # STEP 2
-    logger.debug("Step 2: Get artist info")
-    query_artist_id = db.get_artist_id(cxn, 'Jethro Tull') # STEP 3
-    logger.debug("Step 3: Get artist id")
-    mbid = lastfm.get_mbid(lastfm_data) # STEP 4
-    logger.debug("Step 4: Get mbid")
-    db.insert_artist_mbid(cxn, lastfm_data, 'Jethro Tull') # STEP 5
-    logger.debug("Step 5: Insert artist mbid")
-    db.insert_artist_genres(cxn, lastfm_data, query_artist_id)  # STEP 6
-    logger.debug("Step 6: Insert artist genres")
-    similar_artists = lastfm.get_similar_artists(lastfm_data) # STEP 7
-    logger.debug("Step 7: Get similar artists")
-    for result_artist in similar_artists:
-        result_artist_id = db.get_artist_id(cxn, result_artist) # STEP 8
-        logger.debug("Step 8: Get artist id")
-        if result_artist_id is None: # create row for artist if not exist, fetch mbid, insert into similar_artists
-            cxn.execute_query("INSERT INTO artists (artist) VALUES (%s)", (result_artist,)) # STEP 9
-            logger.debug("Step 9: Insert artist")
-            result_artist_id = db.get_artist_id(cxn, result_artist) # STEP 10
-            logger.debug("Step 10: Get artist id")
-            result_artist_info = lastfm.get_artist_info(result_artist) # STEP 11
-            logger.debug("Step 11: Get artist info")
-            result_artist_mbid = lastfm.get_mbid(result_artist_info) # STEP 12
-            logger.debug("Step 12: Get mbid")
-            db.insert_artist_mbid(cxn, result_artist_info, result_artist)    # STEP 13
-            logger.debug("Step 13: Insert artist mbid")
-            cxn.execute_query("INSERT INTO similar_artists VALUES (%s, %s)", (result_artist_id, query_artist_id)) # STEP 14
-            logger.debug("Step 14: Insert similar artists")
+    all_artists = cxn.execute_select_query("SELECT artist FROM artists")
+    for artist in all_artists:
+        retry_num = 0
+        while retry_num < 5:
+            exponential_backoff(retry_num)
+            try:
+                lastfm_data = lastfm.get_artist_info(artist) # STEP 2
+                query_artist_id = db.get_artist_id(cxn, artist) # STEP 3
+                mbid = lastfm.get_mbid(lastfm_data) # STEP 4
+                db.insert_artist_mbid(cxn, lastfm_data, artist) # STEP 5
+                new_tags = db.process_tags(cxn, lastfm.get_tags(lastfm_data)) # Step 6.
+                db.insert_artist_genres(cxn, new_tags, query_artist_id)  # STEP 6
+                similar_artists = lastfm.get_similar_artists(lastfm_data) # STEP 7
+                for result_artist in similar_artists:
+                    result_artist_id = db.get_artist_id(cxn, result_artist) # STEP 8
+                    if result_artist_id is None: # create row for artist if not exist, fetch mbid, insert into similar_artists
+                        cxn.execute_query("INSERT INTO artists (artist) VALUES (%s)", (result_artist,)) # STEP 9
+                        result_artist_id = db.get_artist_id(cxn, result_artist) # STEP 10
+                        result_artist_info = lastfm.get_artist_info(result_artist) # STEP 11
+                        result_artist_mbid = lastfm.get_mbid(result_artist_info) # STEP 12
+                        if result_artist_mbid is None:
+                            continue
+                        db.insert_artist_mbid(cxn, result_artist_info, result_artist)    # STEP 13
+                        cxn.execute_query("INSERT INTO similar_artists (artist_id, similar_artist_id)VALUES (%s, %s)", (query_artist_id, result_artist_id)) # STEP 14
+                    else:
+                        params = (result_artist_id, query_artist_id) # STEP 15
+                        cxn.execute_query("INSERT INTO similar_artists VALUES (%s, %s)", params) # STEP 16
+            except Exception as e:
+                logger.error(f"Error processing artist data: {e}")
+                retry_num += 1
         else:
-            params = (result_artist_id, query_artist_id) # STEP 15
-            logger.debug("Step 15: Insert similar artists")
-            cxn.execute_query("INSERT INTO similar_artists VALUES (%s, %s)", params) # STEP 16
-            logger.debug("Step 16: Insert similar artists")
+            logger.error(f"Maxium number of retries reached. Skipping artist: {artist}")

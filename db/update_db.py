@@ -136,7 +136,7 @@ def update_location_complete(database: Database, old_str: str, new_str: str):
 
 def insert_artist_mbid(database: Database, result: json, artist_name: str):
     """
-    Updates the MusicBrainz ID (MBID) of the artist in the database.
+    Updates the MusicBrainz ID (MBID) of the artist in the database if it is not already present.
 
     Parameters:
     database (Database): The Database object used to connect to the database.
@@ -147,23 +147,67 @@ def insert_artist_mbid(database: Database, result: json, artist_name: str):
     None
     """
     database.connect()
+
+    # Check if MBID is already in the database
+    current_mbid = get_current_mbid_from_db(database, artist_name)
+    if current_mbid is not None:
+        logger.info(
+            f"MBID for {artist_name} already exists in the database. Skipping update.")
+        database.close()
+        return
+
+    # If MBID is not in the database, update it
     mbid = lastfm.get_mbid(result)
     query = "UPDATE artists SET musicbrainz_id = %s WHERE artist = %s"
     params = (mbid, artist_name)
     database.execute_query(query, params)
     logger.info(f"Updated {artist_name} to new MBID: {mbid}")
+
     database.close()
 
 
-def insert_artist_genres(database: Database, result: json, artist_id: int):
+def get_current_mbid_from_db(database: Database, artist_name: str) -> str:
+    """
+    Retrieves the current MusicBrainz ID (MBID) for the artist from the database.
+
+    Parameters:
+    database (Database): The Database object used to connect to the database.
+    artist_name (str): The name of the artist.
+
+    Returns:
+    str: The current MusicBrainz ID (MBID) if found, None otherwise.
+    """
+    query = "SELECT musicbrainz_id FROM artists WHERE artist = %s"
+    params = (artist_name,)
+    result = database.execute_select_query(query, params)
+
+    if result:
+        return result[0][0]
+    return None
+
+
+def insert_artist_genres(database: Database, new_tags: list, artist_id: int):
     database.connect()
-    genres = lastfm.get_tags(result)
-    for genre in genres:
-        query = "INSERT INTO tags (artist_id, tag) VALUES (%s, %s)"
-        params = (artist_id, genre)
-        database.execute_query(query, params)
-        logger.info(f"Inserted {genre} for {artist_id}")
+    for tag in new_tags:
+        genre_id = get_genre_id(database, tag)  # Assuming a function get_genre_id is implemented to retrieve genre_id
+        if genre_id is not None:
+            query = "INSERT INTO tags (artist_id, tag) VALUES (%s, %s)"
+            params = (artist_id, genre_id)
+            database.execute_query(query, params)
+            logger.info(f"Inserted {tag} for {artist_id}")
+        else:
+            logger.warning(f"Genre ID not found for tag: {tag}")
     database.close()
+
+def get_genre_id(database: Database, tag: str) -> int:
+    query = "SELECT id FROM genres WHERE genre = %s"
+    params = [tag]
+    result = database.execute_select_query(query, params)
+    if result:
+        return result[0][0]
+    else:
+        logger.warning(f"Genre ID not found for genre: {tag}")
+        return None
 
 
 def get_artist_id(database: Database, artist_name: str) -> int:
@@ -191,6 +235,29 @@ def get_artist_id(database: Database, artist_name: str) -> int:
     return result
 
 
-# def insert_similar_artists(database: Database, result: json, artist_id: int):
-#     db = database.connect()
-#     similar_artists = lastfm.get_similar_artists(result)
+def process_tags(database: Database, tags_list: list):
+    """
+    Query the tags table.  Compare tags in list to tags in database. If tag is
+    not in database, convert it to .lower() and insert it into the database.
+    Args:
+        database:
+        tags:
+
+    Returns: bool
+
+    """
+    database.connect()
+#    tags = lastfm.get_tags(result)
+    processed_tags = [tag.lower() for tag in tags_list]
+    for tag in processed_tags:
+        query = "SELECT id FROM genres WHERE genre = %s"
+        params = [tag]
+        tags_query = database.execute_select_query(query, params)
+        logger.debug(f"Result: {tags_query}")
+        if not tags_query:
+            insert_query = "INSERT INTO genres (genre) VALUES (%s)"
+            insert_params = [tag]
+            database.execute_query(insert_query, insert_params)
+            logger.info(f"Inserted new tag: {tag}")
+    database.close()
+    return processed_tags

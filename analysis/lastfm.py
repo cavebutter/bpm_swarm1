@@ -1,7 +1,7 @@
 from configparser import ConfigParser
 import requests
 import json
-from db.database import Database
+from loguru import logger
 
 
 config = ConfigParser()
@@ -15,6 +15,7 @@ LASTFM_APP_NAME = config['LASTFM']['app_name']
 
 
 def get_artist_info(artist_name):
+
     """
     Retrieves information about a specific artist from the Last.fm API.
 
@@ -27,8 +28,10 @@ def get_artist_info(artist_name):
     url = f'http://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist={artist_name}&api_key={LASTFM_API_KEY}&format=json'
     response = requests.get(url)
     if response.status_code == 200:
+        logger.info(f"Retrieved artist info for {artist_name}")
         return response.json()
     else:
+        logger.error(f"Failed to retrieve artist info for {artist_name}")
         return None
 
 
@@ -40,10 +43,15 @@ def get_mbid(result: json):
     result (json): The JSON object containing artist information.
 
     Returns:
-    str: The MusicBrainz ID (MBID) of the artist.
+    str: The MusicBrainz ID (MBID) of the artist, or None if the MBID is not found.
     """
-    mbid = result['artist']['mbid']
-    return mbid
+    try:
+        mbid = result['artist']['mbid']
+        logger.info(f"Retrieved MBID for {result['artist']['name']}: {mbid}")
+        return mbid
+    except (KeyError, TypeError) as e:
+        logger.error(f"Failed to retrieve MBID for {result['artist']['name']}: {e}")
+        return None
 
 
 def get_tags(result: json):
