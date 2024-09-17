@@ -78,7 +78,7 @@ def update_second_id(database: Database, filename: str):
     Returns:
     None
     """
-    db = database.connect()
+    database.connect()
     with open(filename, 'r') as f:
         reader = csv.DictReader(f)
         lib_size = sum(1 for _ in reader)
@@ -89,13 +89,13 @@ def update_second_id(database: Database, filename: str):
             try:
                 for row in reader(f):
                     params = (row['schroeder_id'], row['location'])
-                    db.execute_query(query, params)
+                    database.execute_query(query, params)
                     logger.info(f"Updated to add schroeder_id: {row['schroeder_id']}. Record {i} of {lib_size}")
                     i += 1
             except Exception as e:
                 logger.error(f"Error updating schroeder_id: {row['schroeder_id']}. Record {i} of {lib_size}")
                 i += 1
-    db.close()
+    database.close()
 
 
 def update_location_complete(database: Database, old_str: str, new_str: str):
@@ -110,12 +110,12 @@ def update_location_complete(database: Database, old_str: str, new_str: str):
     Returns:
     None
     """
-    db = database.connect()
+    database.connect()
     query = """SELECT id
               , filepath
               FROM track_data
               """
-    results = db.execute_select_query(query)
+    results = database.execute_select_query(query)
     i = 1
     record_set = len(results)
     for result in results:
@@ -124,14 +124,14 @@ def update_location_complete(database: Database, old_str: str, new_str: str):
             UPDATE track_data SET track_data.location = REPLACE(filepath, %s, %s) WHERE track_data.id = %s
             """
             params = (old_str, new_str, result[0])
-            db.execute_query(update_query, params)
+            database.execute_query(update_query, params)
             logger.info(f"Updated {result[0]} to new location; {i} of {record_set}")
             i += 1
         except Exception as e:
             logger.error(f"Error processing {result[0]}: {e}")
             i += 1
         finally:
-            db.close()
+            database.close()
 
 
 def insert_artist_mbid(database: Database, result: json, artist_name: str):
@@ -186,6 +186,26 @@ def get_current_mbid_from_db(database: Database, artist_name: str) -> str:
     return None
 
 
+def get_genre_id(database: Database, tag: str, artist_id: int) -> int:
+    query = "SELECT id FROM genres WHERE genre = %s"
+    params = [tag]
+    result = database.execute_select_query(query, params)
+    if result:
+        genre_id = result[0][0]
+        # Check association between artist_id and genre_id in the tags table
+        check_query = "SELECT * FROM tags WHERE artist_id = %s AND tag = %s"
+        check_params = (artist_id, genre_id)
+        check_result = database.execute_select_query(check_query, check_params)
+        if check_result:
+            logger.info(f"Association between artist_id {artist_id} and genre_id {genre_id} already exists in tags table")
+        return genre_id
+    else:
+        logger.warning(f"Genre ID not found for genre: {tag}")
+        return None
+
+
+import logging
+
 def insert_artist_genres(database: Database, new_tags: list, artist_id: int):
     database.connect()
     for tag in new_tags:
@@ -193,12 +213,13 @@ def insert_artist_genres(database: Database, new_tags: list, artist_id: int):
         if genre_id is not None:
             query = "INSERT INTO tags (artist_id, tag) VALUES (%s, %s)"
             params = (artist_id, genre_id)
-            database.execute_query(query, params)
-            logger.info(f"Inserted {tag} for {artist_id}")
+            if not database.execute_query(query, params):
+                logger.error(f"Failed to insert {tag} for {artist_id}")
+            else:
+                logger.info(f"Inserted {tag} for {artist_id}")
         else:
             logger.warning(f"Genre ID not found for tag: {tag}")
     database.close()
-
 def get_genre_id(database: Database, tag: str) -> int:
     query = "SELECT id FROM genres WHERE genre = %s"
     params = [tag]
@@ -261,3 +282,42 @@ def process_tags(database: Database, tags_list: list):
             logger.info(f"Inserted new tag: {tag}")
     database.close()
     return processed_tags
+
+
+def maitain_tags_table(database: Database):
+    """
+    A function that maintains the tags table by deleting duplicate tags based on specified conditions.
+    Takes a Database object as a parameter.
+    No return value.
+    """
+    database.connect()
+    try:
+        database.execute_query("""
+        DELETE tags
+        FROM tags t1
+        JOIN tags t2
+          ON t1.tag = t2.tag AND t1.artist_id = t2.artist_id AND t1.id < t2.id
+        """)
+        logger.info("Tags table maintained")
+    except mysql.connector.Error as error:
+        logger.error(f"Failed to maintain tags table: {error}")
+    database.close()
+
+
+def dedupe_track_data(database: Database):
+    """
+    A function that removes duplicate tracks from the track_data table based on specified conditions.
+    Takes a Database object as a parameter.
+    No return value.
+    """
+    database.connect()
+    try:
+        database.execute_query("""
+        DELETE track_data
+        FROM track_data t1
+        JOIN track_data t2
+          ON t1.location = t2.location AND t1.filepath = t2.filepath AND t1.id < t2.id""")
+        logger.info("Track_data table deduped")
+    except mysql.connector.Error as error:
+        logger.error(f"Failed to dedupe track_data table: {error}")
+    database.close()

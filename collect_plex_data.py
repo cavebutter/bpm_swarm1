@@ -1,5 +1,5 @@
 import sys
-
+from db.database import Database
 import plex.plex_functions as p
 import db.db_functions
 import db.update_db
@@ -23,27 +23,37 @@ PLEX_PASSWORD = config['SCHROEDER']['password']
 WOODSTOCK = config['WOODSTOCK']['servername']
 SCHROEDER = config['SCHROEDER']['servername']
 WOODSTOCK_LIBRARY = config['WOODSTOCK']['musiclibrary']
-#SCHROEDER_LIBRARY = config['SCHROEDER']['musiclibrary']
+DB_PATH = config['MYSQL']['db_path']
+DB_USER = config['MYSQL']['db_user']
+DB_PASSWORD = config['MYSQL']['db_pwd']
+DB_DATABASE = config['MYSQL']['db_database']
+SCHROEDER_LIBRARY = config['SCHROEDER']['musiclibrary']
 
 if __name__ == "__main__":
     #  Get tracks from Woodstock and populate db with Woodstock data and BPM
-    server = p.plex_connect(PLEX_USER, PLEX_PASSWORD, WOODSTOCK)  # Connect to the Woodstock server
-    tracks = p.get_all_tracks(server, WOODSTOCK_LIBRARY)  # Get all tracks
-    lib_size = tracks[1]
-    track_list = p.listify_track_data(tracks[0], 'woodstock')  # Listify the track data
-    p.export_track_data(track_list, 'track_data.csv', 'woodstock')  # Export the track data
-    db.db_functions.create_track_db()  # Create the SQLite db and table
-    db.db_functions.insert_tracks('track_data.csv')  # Insert the track data into the db
-#    db.update_db.update_filepath('track_data.db', 'volume1', 'Volumes') # Change the filepath in the db
-    results = db.db_functions.get_id_location()
-    db.db_functions.export_results(results)
-    db.update_db.process_bpm('id_location.csv')
+#    server = p.plex_connect(PLEX_USER, PLEX_PASSWORD, WOODSTOCK)
+#    tracks = p.get_all_tracks(server, WOODSTOCK_LIBRARY)
+#    lib_size = tracks[1]
+#    track_list = p.listify_track_data(tracks[0], 'woodstock')
+#    p.export_track_data(track_list, 'track_data.csv', 'woodstock')
+    database = Database(DB_PATH, DB_USER, DB_PASSWORD, 'sandbox')
+    database.connect()
+#    database.create_genres_table()
+#    database.create_history_table()
+#    database.create_artists_table()
+#    database.create_tags_table()
+#    database.create_similar_artists_table()
+#    database.create_track_data_table()
+#    db.db_functions.insert_tracks(database, 'test_data/track_data.csv')
+#    results = db.db_functions.get_id_location(database)
+#    db.db_functions.export_results(results, 'id_location_test.csv')
+#    db.update_db.process_bpm('id_location.csv')
     #  Get tracks from Schroeder and update db with Schroeder_ids for each track
-    server = p.plex_connect(PLEX_USER, PLEX_PASSWORD, SCHROEDER)  # Connect to Schroeder
-    schroeder_library = p.get_schroeder_library(server)
-    tracks = schroeder_library.searchTracks()  # Get all tracks from Schroeder instead of using get_all_tracks func
-    track_list = p.listify_track_data(tracks, 'schroeder')  # Listify the track data
-    p.export_track_data(track_list, 'second_track_data.csv', 'schroeder')
-    db.update_db.update_filepath("Volumes/Franklin/Media", "volume1/media/Music/Music")
-    db.update_db.update_location_complete("/Volumes/Franklin/Media/Music", "volume1/media/Music/Music")
-    db.update_db.update_second_id('second_track_data.csv')
+#    server = p.plex_connect(PLEX_USER, PLEX_PASSWORD, SCHROEDER)  # Connect to Schroeder
+#    schroeder_library = p.get_schroeder_library(server)
+#    tracks = schroeder_library.searchTracks()  # Get all tracks from Schroeder instead of using get_all_tracks func
+#    track_list = p.listify_track_data(tracks, 'schroeder')  # Listify the track data
+#    p.export_track_data(track_list, 'second_track_data.csv', 'schroeder')
+#    db.update_db.update_filepath(database, "Volumes/Franklin/Media", "volume1/media/Music/Music")#
+#    db.update_db.update_location_complete(database, "/Volumes/Franklin/Media/Music", "volume1/media/Music/Music")
+    db.update_db.update_second_id(database, 'second_track_data.csv')

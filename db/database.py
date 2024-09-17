@@ -86,6 +86,7 @@ class Database:
             return result
 
     def create_artists_table(self, table_name="artists"):
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 0")
         self.drop_table(table_name)
         artists_ddl = '''CREATE TABLE IF NOT EXISTS artists(
         id INTEGER PRIMARY KEY AUTO_INCREMENT
@@ -95,8 +96,10 @@ class Database:
         , musicbrainz_id VARCHAR(255)
         )'''
         self.create_table(artists_ddl)
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 1")
 
     def create_track_data_table(self, table_name="track_data"):
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 0")
         self.drop_table("track_data")
         track_data_ddl = '''
         CREATE TABLE IF NOT EXISTS track_data(
@@ -110,6 +113,8 @@ class Database:
         , bpm INTEGER
         , genre VARCHAR (1000)
         , artist_id INTEGER
+        , woodstock_id INTEGER
+        , schroeder_id INTEGER
         , FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE)'''
         self.create_table(track_data_ddl)
         ix_loc ='''CREATE INDEX ix_loc ON track_data (location)'''
@@ -118,8 +123,10 @@ class Database:
         self.execute_query(ix_loc)
         self.execute_query(ix_filepath)
         self.execute_query(ix_bpm)
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 1")
 
     def create_history_table(self, table_name="history"):
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 0")
         self.drop_table("history")
         history_ddl = '''
         CREATE TABLE IF NOT EXISTS history(
@@ -127,20 +134,25 @@ class Database:
         , tx_date VARCHAR (255)
         , records INTEGER (6))'''
         self.create_table(history_ddl)
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 1")
 
     def create_tags_table(self):
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 0")
         self.drop_table("tags")
         tags_ddl = '''
         CREATE TABLE IF NOT EXISTS tags(
         id INTEGER PRIMARY KEY AUTO_INCREMENT
         , tag INTEGER (6)
         , artist_id INTEGER
+        
         , FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
         , FOREIGN KEY (tag) REFERENCES genres(id) ON DELETE CASCADE)'''
         self.create_table(tags_ddl)
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 1")
 
 
     def create_similar_artists_table(self):
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 0")
         self.drop_table("similar_artists")
         similar_artists_ddl = '''
         CREATE TABLE IF NOT EXISTS similar_artists(
@@ -150,9 +162,11 @@ class Database:
         , FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE
         , FOREIGN KEY (similar_artist_id) REFERENCES artists(id) ON DELETE CASCADE)'''
         self.create_table(similar_artists_ddl)
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 1")
 
 
     def create_genres_table(self):
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 0")
         self.drop_table('genres')
         genres_ddl = '''
         CREATE TABLE IF NOT EXISTS genres(
@@ -161,3 +175,4 @@ class Database:
         )
         '''
         self.create_table(genres_ddl)
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 1")
