@@ -21,6 +21,7 @@ db_port = config['MYSQL']['db_port']
 
 
 def insert_tracks(database: Database, csv_file):
+    # TODO insert track.moods
     database.connect()
     query = """
     INSERT INTO track_data (title, artist, album, genre, added_date, filepath, location, woodstock_id)

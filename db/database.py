@@ -176,3 +176,19 @@ class Database:
         '''
         self.create_table(genres_ddl)
         self.execute_query("SET FOREIGN_KEY_CHECKS = 1")
+
+
+    def create_albums_table(self):
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 0")
+        self.drop_table("albums")
+        albums_ddl = """
+        CREATE TABLE IF NOT EXISTS albums(
+        id INTEGER PRIMARY KEY AUTO_INCREMENT
+        , album_name VARCHAR (255)
+        , album_artist INTEGER
+        , FOREIN KEY (album_artist) REFERENCES artists(id) ON DELETE CASCADE)"""
+        self.create_table(albums_ddl)
+        self.execute_query("SET FOREIGN_KEY_CHECKS = 1")
+
+
+    # TODO create tables for album_mood, album_genre, album_style

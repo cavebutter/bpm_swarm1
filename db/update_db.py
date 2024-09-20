@@ -321,3 +321,11 @@ def dedupe_track_data(database: Database):
     except mysql.connector.Error as error:
         logger.error(f"Failed to dedupe track_data table: {error}")
     database.close()
+
+
+def insert_track_moods(database: Database):
+    pass
+    # TODO Either this func, or the insert
+
+
+# TODO add column to track_data "album_id" and insert the album_id from albums.

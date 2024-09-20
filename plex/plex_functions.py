@@ -132,6 +132,7 @@ def extract_track_data(track, server_name: str):
     Returns:
     dict: A dictionary containing the track data.
     """
+    # TODO include list for track.moods
     server_id = server_name + '_id'
     genre_list = []
     for genre in track.genres:
@@ -233,3 +234,6 @@ def fetch_recent(server, library):
     results = lib.searchTracks(filters = {'addedAt>>=': cutoff})
     logger.debug(f"Results: {len(results)}")
     return results, cutoff
+
+
+# TODO create func to pull all albums to gather artist, genre, style, mood data and populate the relevant tables.
