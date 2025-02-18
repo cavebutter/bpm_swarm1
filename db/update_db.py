@@ -140,9 +140,7 @@ def insert_artist_mbid(database: Database, result: json, artist_name: str):
 
     Parameters:
     database (Database): The Database object used to connect to the database.
-    result (json): The JSON object containing information about the artist.
-    artist_name (str): The name of the artist.
-
+    result (json): The JSON object containing information about git
     Returns:
     None
     """

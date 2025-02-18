@@ -5,6 +5,7 @@ import csv
 import os
 import configparser
 from loguru import logger
+import datetime
 
 #  TODO Find a way to use the config to provide db connection info
 #  TODO Recreate the connect func
@@ -37,24 +38,39 @@ def insert_tracks(database: Database, csv_file):
 
 
 def get_id_location(database: Database, cutoff=None):
+    """
+    Query the database for the id and location of each track. Replace the beginning of the location
+    Args:
+        database: Database object
+        cutoff: String representing the date to use as a cutoff for the query in 'mmddyyyy' format
 
+    Returns:
+        list: List of tuples containing id, woodstock_id, and updated location
+    """
     database.connect()
     query_wo_cutoff = "SELECT id, woodstock_id, location FROM track_data"
-    query_w_cutoff = f"SELECT id, woodstock_id, location FROM track_data WHERE added_date > %s"
+    query_w_cutoff = "SELECT id, woodstock_id, location FROM track_data WHERE added_date > %s"
+
     if cutoff is None:
         results = database.execute_select_query(query_wo_cutoff)
         logger.info("Queried db without cutoff")
     else:
         try:
-            results = database.execute_query(query_w_cutoff, (cutoff,))
+            # Convert cutoff from 'mmddyyyy' to 'yyyy-mm-dd'
+            cutoff_date = datetime.datetime.strptime(cutoff, '%m%d%Y').strftime('%Y-%m-%d')
+            results = database.execute_select_query(query_w_cutoff, (cutoff_date,))
             logger.info("Queried db with cutoff")
         except Exception as e:
             logger.error(f"There was an error querying db with cutoff: {e}")
+            results = []
         finally:
             database.close()
-    logger.debug("Queried DB for id and location")
-    return results
 
+    # Replace the beginning of the location field
+    updated_results = [(id, woodstock_id, location.replace('/Volumes/media/Music/Music/', '/mnt/triton/music/')) for id, woodstock_id, location in results]
+
+    logger.debug("Queried DB for id and location with updated paths")
+    return updated_results
 
 def export_results(results: list, file_path: str = 'id_location.csv'):
     """

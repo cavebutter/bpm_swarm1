@@ -31,29 +31,28 @@ SCHROEDER_LIBRARY = config['SCHROEDER']['musiclibrary']
 
 if __name__ == "__main__":
     #  Get tracks from Woodstock and populate db with Woodstock data and BPM
-#    server = p.plex_connect(PLEX_USER, PLEX_PASSWORD, WOODSTOCK)
-#    tracks = p.get_all_tracks(server, WOODSTOCK_LIBRARY)
-#    lib_size = tracks[1]
-#    track_list = p.listify_track_data(tracks[0], 'woodstock')
-#    p.export_track_data(track_list, 'track_data.csv', 'woodstock')
+    server = p.plex_connect(PLEX_USER, PLEX_PASSWORD, WOODSTOCK)
+    tracks, lib_size = p.get_all_tracks(server, WOODSTOCK_LIBRARY)
+    track_list = p.listify_track_data(tracks, 'woodstock')
+    p.export_track_data(track_list, 'track_data.csv', 'woodstock')
     database = Database(DB_PATH, DB_USER, DB_PASSWORD, 'sandbox')
     database.connect()
-#    database.create_genres_table()
-#    database.create_history_table()
-#    database.create_artists_table()
-#    database.create_tags_table()
-#    database.create_similar_artists_table()
-#    database.create_track_data_table()
-#    db.db_functions.insert_tracks(database, 'test_data/track_data.csv')
-#    results = db.db_functions.get_id_location(database)
-#    db.db_functions.export_results(results, 'id_location_test.csv')
-#    db.update_db.process_bpm('id_location.csv')
-    #  Get tracks from Schroeder and update db with Schroeder_ids for each track
-#    server = p.plex_connect(PLEX_USER, PLEX_PASSWORD, SCHROEDER)  # Connect to Schroeder
-#    schroeder_library = p.get_schroeder_library(server)
-#    tracks = schroeder_library.searchTracks()  # Get all tracks from Schroeder instead of using get_all_tracks func
-#    track_list = p.listify_track_data(tracks, 'schroeder')  # Listify the track data
-#    p.export_track_data(track_list, 'second_track_data.csv', 'schroeder')
-#    db.update_db.update_filepath(database, "Volumes/Franklin/Media", "volume1/media/Music/Music")#
-#    db.update_db.update_location_complete(database, "/Volumes/Franklin/Media/Music", "volume1/media/Music/Music")
-    db.update_db.update_second_id(database, 'second_track_data.csv')
+    database.create_genres_table()
+    database.create_history_table()
+    database.create_artists_table()
+    database.create_tags_table()
+    database.create_similar_artists_table()
+    database.create_track_data_table()
+    db.db_functions.insert_tracks(database, 'track_data.csv')
+    results = db.db_functions.get_id_location(database)
+    db.db_functions.export_results(results, 'id_location.csv')
+    db.update_db.process_bpm('id_location.csv')
+#     Get tracks from Schroeder and update db with Schroeder_ids for each track
+#     server = p.plex_connect(PLEX_USER, PLEX_PASSWORD, SCHROEDER)  # Connect to Schroeder
+#     schroeder_library = p.get_schroeder_library(server)
+#     tracks = schroeder_library.searchTracks()  # Get all tracks from Schroeder instead of using get_all_tracks func
+#     track_list = p.listify_track_data(tracks, 'schroeder')  # Listify the track data
+#     p.export_track_data(track_list, 'second_track_data.csv', 'schroeder')
+#     db.update_db.update_filepath(database, "Volumes/Franklin/Media", "volume1/media/Music/Music")#
+#     db.update_db.update_location_complete(database, "/Volumes/Franklin/Media/Music", "volume1/media/Music/Music")
+#     db.update_db.update_second_id(database, 'second_track_data.csv')

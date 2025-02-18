@@ -84,6 +84,8 @@ def get_schroeder_library(server):
 def get_all_tracks(server, library):
     #  TODO This func works fine on Woodstock but on Schroeder returns AttributeError: MusicSection object has no \
     #   attribute 'lower'.  The individual statements in this func work fine on Schroeder.
+    # TODO Remove server param.  Can make this work with just the library param.  Remove
+    # TODO get_music_library func call.
     """
     Gets all tracks from the music library in the provided Plex server.
 
@@ -113,7 +115,7 @@ def get_all_tracks_test(server, library):
 Limited search for testing purposes only
     """
     try:
-        library = get_music_library(server, library)
+#        library = get_music_library(server, library)
         tracks = library.searchTracks(limit=50)
         library_size = len(tracks)
         logger.info(f"Retrieved tracks. {library_size} tracks in total.")

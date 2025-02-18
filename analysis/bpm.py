@@ -1,10 +1,11 @@
 import librosa
 from loguru import logger
 import os
+import soundfile as sf
+import warnings
 
-#  TODO Deal with why/when PySoundFile fails.
-#  TODO audioread works when PySoundFile fails, but it is deprecated.  Is there a new way?
-#  TODO Suppress audioread deprecation warnings in stdout
+# Suppress audioread deprecation warnings in stdout
+warnings.filterwarnings("ignore", category=DeprecationWarning, module='audioread')
 
 def get_bpm(audio_file):
     """
@@ -23,9 +24,15 @@ def get_bpm(audio_file):
         return None
     try:
         y, sr = librosa.load(audio_file, duration=180)
+        if y.size == 0:
+            logger.error(f"Loaded audio data is empty for file: {audio_file}")
+            return None
         bpm = librosa.beat.beat_track(y=y, sr=sr)[0]
         bpm = int(bpm)
         return bpm
+    except sf.LibsndfileError as e:
+        logger.error(f"PySoundFile error: {e}")
+        return None
     except Exception as e:
         logger.error(f"Error: {e}")
         return None
